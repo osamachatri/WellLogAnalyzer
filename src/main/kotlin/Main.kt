@@ -1,16 +1,32 @@
 package com.oussama_chatri
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-fun main() {
-    val name = "Kotlin"
-    //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-    // to see how IntelliJ IDEA suggests fixing it.
-    println("Hello, " + name + "!")
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.application
+import androidx.compose.ui.window.rememberWindowState
+import com.oussama_chatri.core.di.AppModule
+import org.koin.core.context.startKoin
 
-    for (i in 1..5) {
-        //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-        // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-        println("i = $i")
+fun main() {
+    startKoin {
+        modules(AppModule)
+    }
+
+    application {
+        val windowState = rememberWindowState(
+            width  = 1440.dp,
+            height = 900.dp
+        )
+
+        Window(
+            onCloseRequest = ::exitApplication,
+            title          = "WellLogAnalyzer",
+            state          = windowState,
+            resizable      = true,
+            icon = painterResource("icons/app_icon.png")
+        ) {
+            App()
+        }
     }
 }
