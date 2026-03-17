@@ -1,51 +1,51 @@
 package com.oussama_chatri.core.navigation
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.oussama_chatri.feature.wellinput.presentation.WellInputScreen
+import com.oussama_chatri.AppState
+import com.oussama_chatri.feature.simulation.presentation.SimulationScreen
+import com.oussama_chatri.feature.wellinput.presentation.screen.WellInputScreen
 
 @Composable
-fun AppNavigation(currentRoute: Route) {
-    when (currentRoute) {
-        Route.Dashboard   -> DashboardScreenPlaceholder()
-        Route.WellInput   -> WellInputScreen(modifier = Modifier.fillMaxSize())
-        Route.Simulation  -> SimulationScreenPlaceholder()
-        Route.Charts2D    -> Charts2DScreenPlaceholder()
-        Route.Viewer3D    -> Viewer3DScreenPlaceholder()
-        Route.Reports     -> ReportsScreenPlaceholder()
-        Route.Settings    -> SettingsScreenPlaceholder()
+fun AppNavigation(appState: AppState) {
+    when (appState.currentRoute) {
+        Route.Dashboard  -> ScreenPlaceholder("Dashboard")
+        Route.WellInput  -> WellInputScreen(
+            // When "Run Simulation →" is pressed in the validation sidebar,
+            // we save the current profile into AppState and switch screens
+            onNavigateToSimulation = { profile ->
+                appState.navigateToSimulation(profile)
+            },
+            modifier = Modifier.fillMaxSize()
+        )
+        Route.Simulation -> SimulationScreen(
+            // Hand the active profile straight to the simulation screen so
+            // the ViewModel can load it without any extra user interaction
+            profileToLoad = appState.activeProfile,
+            modifier      = Modifier.fillMaxSize()
+        )
+        Route.Charts2D   -> ScreenPlaceholder("2D Charts")
+        Route.Viewer3D   -> ScreenPlaceholder("3D Viewer")
+        Route.Reports    -> ScreenPlaceholder("Reports")
+        Route.Settings   -> ScreenPlaceholder("Settings")
     }
 }
 
 @Composable
-private fun DashboardScreenPlaceholder()  = ScreenPlaceholder("Dashboard")
-
-@Composable
-private fun SimulationScreenPlaceholder() = ScreenPlaceholder("Simulation")
-
-@Composable
-private fun Charts2DScreenPlaceholder()   = ScreenPlaceholder("2D Charts")
-
-@Composable
-private fun Viewer3DScreenPlaceholder()   = ScreenPlaceholder("3D Viewer")
-
-@Composable
-private fun ReportsScreenPlaceholder()    = ScreenPlaceholder("Reports")
-
-@Composable
-private fun SettingsScreenPlaceholder()   = ScreenPlaceholder("Settings")
-
-@Composable
 private fun ScreenPlaceholder(name: String) {
-    androidx.compose.foundation.layout.Box(
-        modifier = androidx.compose.ui.Modifier.fillMaxSize(),
-        contentAlignment = androidx.compose.ui.Alignment.Center
+    Box(
+        modifier          = Modifier.fillMaxSize(),
+        contentAlignment  = Alignment.Center
     ) {
-        androidx.compose.material3.Text(
+        Text(
             text  = "$name — coming soon",
-            style = androidx.compose.material3.MaterialTheme.typography.headlineMedium,
-            color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

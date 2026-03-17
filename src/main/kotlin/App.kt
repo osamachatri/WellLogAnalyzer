@@ -18,7 +18,7 @@ fun App() {
             onThemeToggle   = appState::toggleTheme,
             onRouteSelected = appState::navigate,
         ) {
-            AppNavigation(currentRoute = appState.currentRoute)
+            AppNavigation(appState = appState)
         }
     }
 }
