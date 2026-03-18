@@ -1,13 +1,14 @@
 package com.oussama_chatri
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.runtime.*
 import com.oussama_chatri.core.navigation.AppNavigation
 import com.oussama_chatri.core.theme.AppTheme
 import com.oussama_chatri.core.ui.components.AppScaffold
+import com.oussama_chatri.core.ui.components.SplashScreen
 import com.oussama_chatri.feature.settings.presentation.viewmodel.SettingsViewModel
 import org.koin.compose.koinInject
 
@@ -21,13 +22,30 @@ fun App() {
         appState.setTheme(settings.themeId)
     }
 
+    var showSplash by remember { mutableStateOf(true) }
+
     AppTheme(themeId = appState.currentThemeId) {
-        AppScaffold(
-            currentRoute    = appState.currentRoute,
-            screenTitle     = appState.currentRoute.label,
-            onRouteSelected = appState::navigate,
+
+        AnimatedVisibility(
+            visible = !showSplash,
+            enter   = fadeIn(animationSpec  = tween(durationMillis = 500)),
+            exit    = fadeOut(animationSpec = tween(durationMillis = 300))
         ) {
-            AppNavigation(appState = appState)
+            AppScaffold(
+                currentRoute    = appState.currentRoute,
+                screenTitle     = appState.currentRoute.label,
+                onRouteSelected = appState::navigate,
+            ) {
+                AppNavigation(appState = appState)
+            }
+        }
+
+        AnimatedVisibility(
+            visible = showSplash,
+            enter   = fadeIn(animationSpec  = tween(durationMillis = 300)),
+            exit    = fadeOut(animationSpec = tween(durationMillis = 600))
+        ) {
+            SplashScreen(onFinished = { showSplash = false })
         }
     }
 }

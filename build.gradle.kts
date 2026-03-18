@@ -72,15 +72,74 @@ dependencies {
 compose.desktop {
     application {
         mainClass = "com.oussama_chatri.MainKt"
-        nativeDistributions {
-            targetFormats(
-                org.jetbrains.compose.desktop.application.dsl.TargetFormat.AppImage
-            )
-            packageName    = "WellLogAnalyzer"
-            packageVersion = "1.0.0"
 
+        // ── JVM args required for packaged native distributions ──────────────
+        // These mirror what the JVM needs at runtime for JAXB, JavaFX interop,
+        // and Compose's own reflection usage inside a modular JDK image.
+        jvmArgs += listOf(
+            "--add-opens", "java.base/java.lang=ALL-UNNAMED",
+            "--add-opens", "java.base/java.util=ALL-UNNAMED",
+            "--add-opens", "java.base/java.io=ALL-UNNAMED",
+            "--add-opens", "java.desktop/sun.awt=ALL-UNNAMED",
+            "--add-opens", "java.desktop/java.awt=ALL-UNNAMED",
+            "--add-exports", "java.desktop/sun.java2d=ALL-UNNAMED",
+        )
+
+        nativeDistributions {
+            // ── Build all four formats ───────────────────────────────────────
+            // Each format is only produced when the task runs on the matching OS:
+            //   Exe / Msi  →  windows-latest  (GitHub Actions / Windows machine)
+            //   Dmg        →  macos-latest    (GitHub Actions / Mac machine)
+            //   AppImage / Deb  →  ubuntu-latest or Manjaro (current machine)
+            targetFormats(
+                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Exe,      // Windows installer
+                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Msi,      // Windows MSI
+                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Dmg,      // macOS disk image
+                org.jetbrains.compose.desktop.application.dsl.TargetFormat.AppImage, // Linux universal
+                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Deb,      // Linux .deb
+            )
+
+            packageName        = "WellLogAnalyzer"
+            packageVersion     = "1.0.0"
+            description        = "Hydraulics simulation tool for petroleum engineers"
+            copyright          = "© 2025 Oussama Chatri"
+            vendor             = "Oussama Chatri"
+
+            // ── Linux ────────────────────────────────────────────────────────
             linux {
+                // PNG required — 512×512 recommended
                 iconFile.set(project.file("src/main/resources/icons/app_icon.png"))
+                packageName      = "wellloganalyzer"
+                debMaintainer    = "oussama.chatri@example.com"
+                appCategory      = "Science"
+                menuGroup        = "Science;Engineering;"
+            }
+
+            // ── Windows ──────────────────────────────────────────────────────
+            windows {
+                // ICO required for Windows — add app_icon.ico to resources/icons/
+                iconFile.set(project.file("src/main/resources/icons/app_icon.ico"))
+                menuGroup        = "WellLogAnalyzer"
+                // Creates a desktop shortcut
+                shortcut         = true
+                // Adds to Windows "Add or Remove Programs"
+                upgradeUuid      = "3A7B4F2E-1C5D-4E8A-B9F0-2D6E3A1C7B4F"
+                dirChooser       = true
+                perUserInstall   = false
+            }
+
+            // ── macOS ────────────────────────────────────────────────────────
+            macOS {
+                // ICNS required for macOS — convert app_icon.png with iconutil
+                iconFile.set(project.file("src/main/resources/icons/app_icon.icns"))
+                bundleID         = "com.oussama_chatri.wellloganalyzer"
+                appCategory      = "public.app-category.developer-tools"
+                // For distribution outside the Mac App Store, you need a Developer
+                // ID certificate. For local/CI unsigned builds, leave signing blank.
+                // signing {
+                //     sign.set(true)
+                //     identity.set("Developer ID Application: Your Name (TEAMID)")
+                // }
             }
         }
     }
