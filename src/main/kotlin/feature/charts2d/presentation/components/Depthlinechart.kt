@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
@@ -25,7 +26,6 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.oussama_chatri.core.theme.CardSurface
 import com.oussama_chatri.core.theme.ChartSafeZone
 import com.oussama_chatri.core.theme.DividerColor
 import com.oussama_chatri.core.theme.NavyDeep
@@ -36,14 +36,7 @@ import com.oussama_chatri.feature.charts2d.domain.model.ChartSeries
 
 /**
  * Canvas-drawn depth-inverted line chart.
- *
- * - X axis: the measured quantity (pressure, ECD, velocity)
- * - Y axis: depth increasing downward (depth = 0 at top)
- * - Each [ChartSeries] is drawn as a polyline in its own color
- * - Dashed series use a [PathEffect.dashPathEffect]
- * - When the dataset has [safeWindowMin] and [safeWindowMax], the region between them
- *   is filled with a translucent teal band
- * - A crosshair tooltip follows the mouse pointer
+ * Y axis is depth increasing downward; X axis is the measured quantity.
  */
 @Composable
 fun DepthLineChart(
@@ -54,8 +47,6 @@ fun DepthLineChart(
     modifier: Modifier = Modifier
 ) {
     val measurer = rememberTextMeasurer()
-
-    // Crosshair position in canvas coordinates
     var hoverOffset by remember { mutableStateOf<Offset?>(null) }
 
     val axisLabelStyle = TextStyle(
@@ -71,53 +62,59 @@ fun DepthLineChart(
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 56.dp, end = 16.dp, top = 16.dp, bottom = 40.dp)
+                // Generous padding so the chart plot area never goes negative
+                .padding(start = 60.dp, end = 20.dp, top = 20.dp, bottom = 44.dp)
                 .pointerInput(Unit) {
-                    detectHoverPointerInput(
-                        onMove = { event ->
-                            hoverOffset = event.changes.first().position
-                        },
-                        onExit = { hoverOffset = null }
-                    )
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            when (event.type) {
+                                PointerEventType.Move ->
+                                    hoverOffset = event.changes.firstOrNull()?.position
+                                PointerEventType.Exit ->
+                                    hoverOffset = null
+                                else -> Unit
+                            }
+                        }
+                    }
                 }
         ) {
             val w = size.width
             val h = size.height
 
-            if (w <= 0f || h <= 0f) return@Canvas
+            // Do nothing if the layout hasn't settled yet
+            if (w < 1f || h < 1f) return@Canvas
 
             val visibleSeries = dataSet.series.filter {
                 seriesVisibility[it.id] != false && it.points.isNotEmpty()
             }
-
             if (visibleSeries.isEmpty()) return@Canvas
 
-            // Compute full data range across all series
-            val allDepths = visibleSeries.flatMap { it.points.map { p -> p.second } }
-            val allX      = visibleSeries.flatMap { it.points.map { p -> p.first } }
-            val minDepth  = allDepths.minOrNull() ?: 0.0
-            val maxDepth  = allDepths.maxOrNull() ?: 1.0
-            val minX      = (allX.minOrNull() ?: 0.0).coerceAtMost(0.0)
-            val maxX      = (allX.maxOrNull() ?: 1.0)
+            val allDepths = visibleSeries.flatMap { s -> s.points.map { it.second } }
+            val allX      = visibleSeries.flatMap { s -> s.points.map { it.first } }
 
-            // Apply depth range filter
+            val minDepth = allDepths.minOrNull() ?: 0.0
+            val maxDepth = (allDepths.maxOrNull() ?: 1.0).let { if (it == minDepth) minDepth + 1.0 else it }
+            val minX     = (allX.minOrNull() ?: 0.0).coerceAtMost(0.0)
+            val maxX     = (allX.maxOrNull() ?: 1.0).let { if (it == minX) minX + 1.0 else it }
+
             val depthSpan  = maxDepth - minDepth
             val filterMin  = minDepth + depthFractionMin * depthSpan
             val filterMax  = minDepth + depthFractionMax * depthSpan
+            val filterSpan = (filterMax - filterMin).coerceAtLeast(1.0)
+            val xSpan      = (maxX - minX).coerceAtLeast(1.0)
 
             fun xToCanvas(xVal: Double): Float =
-                ((xVal - minX) / (maxX - minX) * w).toFloat().coerceIn(0f, w)
+                ((xVal - minX) / xSpan * w).toFloat().coerceIn(0f, w)
 
             fun depthToCanvas(depth: Double): Float =
-                ((depth - filterMin) / (filterMax - filterMin) * h).toFloat().coerceIn(0f, h)
+                ((depth - filterMin) / filterSpan * h).toFloat().coerceIn(0f, h)
 
-            // Grid lines
-            val gridCount = 5
-            for (i in 0..gridCount) {
-                val xPos = w * i / gridCount
+            // Grid
+            for (i in 0..4) {
+                val xPos = w * i / 4f
                 drawLine(DividerColor.copy(alpha = 0.25f), Offset(xPos, 0f), Offset(xPos, h), 1f)
-
-                val yPos = h * i / gridCount
+                val yPos = h * i / 4f
                 drawLine(DividerColor.copy(alpha = 0.25f), Offset(0f, yPos), Offset(w, yPos), 1f)
             }
 
@@ -125,121 +122,98 @@ fun DepthLineChart(
             val safeMin = dataSet.safeWindowMin?.filter { it.second in filterMin..filterMax }
             val safeMax = dataSet.safeWindowMax?.filter { it.second in filterMin..filterMax }
             if (!safeMin.isNullOrEmpty() && !safeMax.isNullOrEmpty()) {
-                val path = Path()
-                val minPts = safeMin.sortedBy { it.second }
-                val maxPts = safeMax.sortedBy { it.second }.reversed()
-
+                val path    = Path()
+                val minPts  = safeMin.sortedBy { it.second }
+                val maxPts  = safeMax.sortedBy { it.second }.reversed()
                 path.moveTo(xToCanvas(minPts.first().first), depthToCanvas(minPts.first().second))
                 minPts.forEach { (x, d) -> path.lineTo(xToCanvas(x), depthToCanvas(d)) }
                 maxPts.forEach { (x, d) -> path.lineTo(xToCanvas(x), depthToCanvas(d)) }
                 path.close()
-
                 drawPath(path, ChartSafeZone)
             }
 
-            // Draw each series
+            // Series lines
             visibleSeries.forEach { series ->
-                drawSeries(
-                    series        = series,
-                    filterMinDepth = filterMin,
-                    filterMaxDepth = filterMax,
-                    toX           = ::xToCanvas,
-                    toY           = ::depthToCanvas
-                )
+                val pts = series.points
+                    .filter { it.second in filterMin..filterMax }
+                    .sortedBy { it.second }
+
+                if (pts.size >= 2) {
+                    val path = Path()
+                    path.moveTo(xToCanvas(pts.first().first), depthToCanvas(pts.first().second))
+                    pts.drop(1).forEach { (x, d) -> path.lineTo(xToCanvas(x), depthToCanvas(d)) }
+
+                    val pathEffect = if (series.isDashed)
+                        PathEffect.dashPathEffect(floatArrayOf(12f, 6f)) else null
+
+                    drawPath(path, series.color, style = Stroke(width = 2f, pathEffect = pathEffect))
+
+                    listOf(pts.first(), pts.last()).forEach { (x, d) ->
+                        drawCircle(series.color, radius = 3f, center = Offset(xToCanvas(x), depthToCanvas(d)))
+                    }
+                }
             }
 
-            // X axis tick labels
-            for (i in 0..4) {
-                val xVal  = minX + (maxX - minX) * i / 4
-                val xPos  = xToCanvas(xVal)
-                val label = if (xVal >= 1000) "${(xVal / 1000).toInt()}K" else String.format("%.1f", xVal)
-                drawText(
-                    textMeasurer = measurer,
-                    text         = label,
-                    style        = axisLabelStyle,
-                    topLeft      = Offset(xPos - 12f, h + 6f)
-                )
+            // X axis tick labels — only when there's enough vertical room
+            if (h > 20f) {
+                for (i in 0..4) {
+                    val xVal  = minX + xSpan * i / 4.0
+                    val xPos  = xToCanvas(xVal)
+                    val label = if (xVal >= 1000) "${(xVal / 1000).toInt()}K"
+                    else String.format("%.1f", xVal)
+                    safeDrawText(measurer, label, axisLabelStyle, Offset(xPos - 12f, h + 6f), w, h)
+                }
             }
 
-            // Y axis tick labels
-            for (i in 0..4) {
-                val depth = filterMin + (filterMax - filterMin) * i / 4
-                val yPos  = depthToCanvas(depth)
-                drawText(
-                    textMeasurer = measurer,
-                    text         = "${depth.toInt()}",
-                    style        = axisLabelStyle,
-                    topLeft      = Offset(-52f, yPos - 6f)
-                )
+            // Y axis tick labels — only when there's enough horizontal room
+            if (w > 20f) {
+                for (i in 0..4) {
+                    val depth = filterMin + filterSpan * i / 4.0
+                    val yPos  = depthToCanvas(depth)
+                    safeDrawText(measurer, "${depth.toInt()}", axisLabelStyle, Offset(-52f, yPos - 6f), w, h)
+                }
             }
 
             // Crosshair
             hoverOffset?.let { pos ->
-                drawLine(
-                    color       = TextMuted.copy(alpha = 0.5f),
-                    start       = Offset(pos.x, 0f),
-                    end         = Offset(pos.x, h),
-                    strokeWidth = 1f,
-                    pathEffect  = PathEffect.dashPathEffect(floatArrayOf(4f, 4f))
-                )
-                drawLine(
-                    color       = TextMuted.copy(alpha = 0.5f),
-                    start       = Offset(0f, pos.y),
-                    end         = Offset(w, pos.y),
-                    strokeWidth = 1f,
-                    pathEffect  = PathEffect.dashPathEffect(floatArrayOf(4f, 4f))
-                )
+                val dash = PathEffect.dashPathEffect(floatArrayOf(4f, 4f))
+                drawLine(TextMuted.copy(alpha = 0.5f), Offset(pos.x, 0f), Offset(pos.x, h), 1f, pathEffect = dash)
+                drawLine(TextMuted.copy(alpha = 0.5f), Offset(0f, pos.y), Offset(w, pos.y), 1f, pathEffect = dash)
             }
         }
     }
 }
 
-private fun DrawScope.drawSeries(
-    series: ChartSeries,
-    filterMinDepth: Double,
-    filterMaxDepth: Double,
-    toX: (Double) -> Float,
-    toY: (Double) -> Float
+/**
+ * Draws text only when the canvas area around [topLeft] is large enough to
+ * accommodate it. Prevents the "maxHeight must be >= minHeight" crash that
+ * occurs when [drawText] is called on a canvas with insufficient space.
+ */
+private fun DrawScope.safeDrawText(
+    measurer: TextMeasurer,
+    text: String,
+    style: TextStyle,
+    topLeft: Offset,
+    canvasWidth: Float,
+    canvasHeight: Float
 ) {
-    val pts = series.points
-        .filter { it.second in filterMinDepth..filterMaxDepth }
-        .sortedBy { it.second }
+    // Measure needed size before committing to draw
+    val measured = measurer.measure(text, style)
+    val tw = measured.size.width.toFloat()
+    val th = measured.size.height.toFloat()
 
-    if (pts.size < 2) return
+    // Only draw if there's a positive bounding box in canvas coordinate space
+    if (tw <= 0f || th <= 0f) return
+    if (canvasWidth <= 0f || canvasHeight <= 0f) return
 
-    val path = Path()
-    path.moveTo(toX(pts.first().first), toY(pts.first().second))
-    pts.drop(1).forEach { (x, d) -> path.lineTo(toX(x), toY(d)) }
-
-    val pathEffect = if (series.isDashed) {
-        PathEffect.dashPathEffect(floatArrayOf(12f, 6f))
-    } else null
-
-    drawPath(
-        path        = path,
-        color       = series.color,
-        style       = Stroke(width = 2f, pathEffect = pathEffect)
-    )
-
-    // Draw small dot at first and last visible point
-    listOf(pts.first(), pts.last()).forEach { (x, d) ->
-        drawCircle(series.color, radius = 3f, center = Offset(toX(x), toY(d)))
-    }
-}
-
-// Hover pointer detection workaround for Compose Desktop
-private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.detectHoverPointerInput(
-    onMove: (androidx.compose.ui.input.pointer.PointerEvent) -> Unit,
-    onExit: () -> Unit
-) {
-    awaitPointerEventScope {
-        while (true) {
-            val event = awaitPointerEvent()
-            when (event.type) {
-                androidx.compose.ui.input.pointer.PointerEventType.Move -> onMove(event)
-                androidx.compose.ui.input.pointer.PointerEventType.Exit -> onExit()
-                else -> Unit
-            }
-        }
+    try {
+        drawText(
+            textMeasurer = measurer,
+            text         = text,
+            style        = style,
+            topLeft      = topLeft
+        )
+    } catch (_: IllegalArgumentException) {
+        // Canvas is still too small on this frame — skip silently; next frame will be fine
     }
 }
