@@ -24,41 +24,44 @@ fun SimulationProgressBar(
     modifier: Modifier = Modifier
 ) {
     val animatedFraction by animateFloatAsState(
-        targetValue    = status.progressFraction,
-        animationSpec  = tween(durationMillis = 300),
-        label          = "sim_progress"
+        targetValue   = status.progressFraction,
+        animationSpec = tween(durationMillis = 300),
+        label         = "sim_progress"
     )
 
+    val colorAmber   = AmberGold
+    val colorDivider = DividerColor
+    val colorTextSec = TextSecondary
+
     Column(
-        modifier = modifier.fillMaxWidth(),
+        modifier            = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier              = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment     = Alignment.CenterVertically
         ) {
             Text(
                 text  = "Computing depth ${status.currentDepth.toInt()} / ${status.totalDepth.toInt()} ft",
                 style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary
+                color = colorTextSec
             )
             Text(
                 text  = "${(animatedFraction * 100).toInt()}%",
                 style = MaterialTheme.typography.labelLarge,
-                color = AmberGold
+                color = colorAmber
             )
         }
 
         LinearProgressIndicator(
-            progress         = { animatedFraction },
-            modifier         = Modifier.fillMaxWidth().height(6.dp),
-            color            = AmberGold,
-            trackColor       = DividerColor,
-            strokeCap        = androidx.compose.ui.graphics.StrokeCap.Round
+            progress  = { animatedFraction },
+            modifier  = Modifier.fillMaxWidth().height(6.dp),
+            color     = colorAmber,
+            trackColor = colorDivider,
+            strokeCap  = androidx.compose.ui.graphics.StrokeCap.Round
         )
 
-        // Live mini ECD chart
         if (liveProfile.size >= 2) {
             LiveEcdMiniChart(
                 profile  = liveProfile,
@@ -77,9 +80,15 @@ private fun LiveEcdMiniChart(
     val minEcd   = profile.minOf { it.ecd }.let { (it - 0.5).coerceAtLeast(0.0) }
     val maxEcd   = profile.maxOf { it.ecd } + 0.5
 
+    // ── Capture @Composable colors before Canvas ──
+    val colorBg      = NavyDeep
+    val colorDivider = DividerColor
+    val colorTeal    = TealSafe
+    val colorBlue    = ChartBlue
+
     Box(
         modifier = modifier
-            .background(NavyDeep, MaterialTheme.shapes.small)
+            .background(colorBg, MaterialTheme.shapes.small)
             .padding(8.dp)
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -89,7 +98,7 @@ private fun LiveEcdMiniChart(
             // Subtle grid
             repeat(4) { i ->
                 val y = h * (i + 1) / 5f
-                drawLine(DividerColor.copy(alpha = 0.3f), Offset(0f, y), Offset(w, y), 1f)
+                drawLine(colorDivider.copy(alpha = 0.3f), Offset(0f, y), Offset(w, y), 1f)
             }
 
             // ECD line
@@ -99,15 +108,15 @@ private fun LiveEcdMiniChart(
                 val y = (((maxEcd - point.ecd) / (maxEcd - minEcd)) * h).toFloat().coerceIn(0f, h)
                 if (i == 0) ecdPath.moveTo(x, y) else ecdPath.lineTo(x, y)
             }
-            drawPath(ecdPath, TealSafe, style = Stroke(width = 2f))
+            drawPath(ecdPath, colorTeal, style = Stroke(width = 2f))
 
-            // Pore pressure reference line (dashed effect via short segments)
+            // Pore pressure reference line
             val ppGrad = profile.lastOrNull()?.porePressure ?: return@Canvas
-            val ppY = (((maxEcd - ppGrad) / (maxEcd - minEcd)) * h).toFloat().coerceIn(0f, h)
-            var x = 0f
+            val ppY    = (((maxEcd - ppGrad) / (maxEcd - minEcd)) * h).toFloat().coerceIn(0f, h)
+            var x      = 0f
             while (x < w) {
                 drawLine(
-                    color       = ChartBlue.copy(alpha = 0.5f),
+                    color       = colorBlue.copy(alpha = 0.5f),
                     start       = Offset(x, ppY),
                     end         = Offset((x + 8f).coerceAtMost(w), ppY),
                     strokeWidth = 1.5f
@@ -119,7 +128,7 @@ private fun LiveEcdMiniChart(
         Text(
             text     = "ECD (live)",
             style    = MaterialTheme.typography.labelSmall,
-            color    = TealSafe,
+            color    = colorTeal,
             modifier = Modifier.align(Alignment.TopStart).padding(2.dp)
         )
     }

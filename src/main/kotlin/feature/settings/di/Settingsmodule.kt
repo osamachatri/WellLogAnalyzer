@@ -10,5 +10,5 @@ val SettingsModule = module {
     single  { SettingsProtoStore() }
     factory { LoadSettingsUseCase(store = get()) }
     factory { SaveSettingsUseCase(store = get()) }
-    factory { SettingsViewModel(loadSettings = get(), saveSettings = get()) }
+    single { SettingsViewModel(loadSettings = get(), saveSettings = get()) }
 }

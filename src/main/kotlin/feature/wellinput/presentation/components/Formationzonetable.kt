@@ -264,7 +264,7 @@ fun LithologyChip(lithology: Lithology, modifier: Modifier = Modifier) {
 
 fun lithologyColors(lithology: Lithology): Pair<Color, Color> = when (lithology) {
     Lithology.SHALE      -> Color(0xFF94A3B8) to Color(0xFF607080).copy(alpha = 0.25f)
-    Lithology.SANDSTONE  -> AmberGold         to AmberGold.copy(alpha = 0.20f)
+    Lithology.SANDSTONE  -> Color(0xFFF4A917) to Color(0xFFF4A917).copy(alpha = 0.20f)
     Lithology.LIMESTONE  -> Color(0xFFD9CDB4) to Color(0xFFD9CDB4).copy(alpha = 0.20f)
     Lithology.SALT       -> Color(0xFFB0C8D8) to Color(0xFFB0C8D8).copy(alpha = 0.20f)
     Lithology.DOLOMITE   -> Color(0xFFB8A88A) to Color(0xFFB8A88A).copy(alpha = 0.20f)

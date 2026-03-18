@@ -1,47 +1,43 @@
 package com.oussama_chatri.core.theme
 
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-// ── Primary brand ──────────────────────────────────────────────────────────
-val NavyDeep       = Color(0xFF0D1B2A)
-val SlateDark      = Color(0xFF1A2535)
-val CardSurface    = Color(0xFF212E42)
-val CardElevated   = Color(0xFF2A3A54)
-val DividerColor   = Color(0xFF2E3E58)
+// ── Backgrounds & surfaces ──────────────────────────────────────────────────
+val NavyDeep:     Color @Composable get() = LocalWellLogColors.current.background
+val SurfaceDark:  Color @Composable get() = LocalWellLogColors.current.surface
+val CardSurface:  Color @Composable get() = LocalWellLogColors.current.cardSurface
+val CardElevated: Color @Composable get() = LocalWellLogColors.current.cardElevated
+val DividerColor: Color @Composable get() = LocalWellLogColors.current.divider
 
-// ── Accent ─────────────────────────────────────────────────────────────────
-val AmberGold      = Color(0xFFF4A917)
-val AmberDark      = Color(0xFFD4920F)
-val AmberDim       = Color(0x1AF4A917)
+// ── Accent / amber ──────────────────────────────────────────────────────────
+val AmberGold:    Color @Composable get() = LocalWellLogColors.current.accent
+val AmberDark:    Color @Composable get() = LocalWellLogColors.current.accentDark
+val AmberDim:     Color @Composable get() = LocalWellLogColors.current.accentDim
 
-// ── Semantic ───────────────────────────────────────────────────────────────
-val TealSafe       = Color(0xFF2EC4B6)
-val TealDim        = Color(0x1A2EC4B6)
-val CoralDanger    = Color(0xFFE63946)
-val CoralDim       = Color(0x1AE63946)
-val AmberWarning   = Color(0xFFF4A917)
+// ── Semantic status ─────────────────────────────────────────────────────────
+val TealSafe:     Color @Composable get() = LocalWellLogColors.current.safe
+val TealSafeDim:  Color @Composable get() = LocalWellLogColors.current.safeDim
+val CoralDanger:  Color @Composable get() = LocalWellLogColors.current.danger
+val CoralDim:     Color @Composable get() = LocalWellLogColors.current.dangerDim
+val AmberWarning: Color @Composable get() = LocalWellLogColors.current.warning
+val StatusNotRun: Color @Composable get() = LocalWellLogColors.current.textMuted
 
-// ── Typography ─────────────────────────────────────────────────────────────
-val TextPrimary    = Color(0xFFFFFFFF)
-val TextSecondary  = Color(0xFF94A3B8)
-val TextMuted      = Color(0xFF4A5568)
+// ── Text ────────────────────────────────────────────────────────────────────
+val TextPrimary:   Color @Composable get() = LocalWellLogColors.current.textPrimary
+val TextSecondary: Color @Composable get() = LocalWellLogColors.current.textSecondary
+val TextMuted:     Color @Composable get() = LocalWellLogColors.current.textMuted
 
-// ── Chart colors ───────────────────────────────────────────────────────────
-val ChartAmber     = Color(0xFFF4A917)
-val ChartTeal      = Color(0xFF2EC4B6)
-val ChartBlue      = Color(0xFF4FC3F7)
-val ChartCoral     = Color(0xFFE63946)
-val ChartSafeZone  = Color(0x1A2EC4B6)
+// ── Chart series ────────────────────────────────────────────────────────────
+val ChartAmber:    Color @Composable get() = LocalWellLogColors.current.chartAmber
+val ChartTeal:     Color @Composable get() = LocalWellLogColors.current.chartTeal
+val ChartBlue:     Color @Composable get() = LocalWellLogColors.current.chartBlue
+val ChartCoral:    Color @Composable get() = LocalWellLogColors.current.chartCoral
+val ChartSafeZone: Color @Composable get() = LocalWellLogColors.current.chartSafeZone
 
-// ── Geology lithology colors ────────────────────────────────────────────────
-val LithShale      = Color(0xFF607080)
-val LithSandstone  = Color(0xFFD4A843)
-val LithLimestone  = Color(0xFFD9CDB4)
-val LithSalt       = Color(0xFFB0C8D8)
-val LithTargetSand = Color(0xFFF4A917)
-
-// ── Status badge fills ─────────────────────────────────────────────────────
-val StatusSafe     = TealSafe
-val StatusWarning  = AmberWarning
-val StatusDanger   = CoralDanger
-val StatusNotRun   = Color(0xFF4A5568)
+// ── Lithology ───────────────────────────────────────────────────────────────
+val LithShale:      Color @Composable get() = LocalWellLogColors.current.lithShale
+val LithSandstone:  Color @Composable get() = LocalWellLogColors.current.lithSandstone
+val LithLimestone:  Color @Composable get() = LocalWellLogColors.current.lithLimestone
+val LithSalt:       Color @Composable get() = LocalWellLogColors.current.lithSalt
+val LithTargetSand: Color @Composable get() = LocalWellLogColors.current.lithTargetSand

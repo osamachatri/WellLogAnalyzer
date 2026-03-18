@@ -26,8 +26,6 @@ import com.oussama_chatri.feature.charts2d.domain.model.ChartDataSet
 
 /**
  * Horizontal bar chart for Bit Hydraulics and Component Breakdown tabs.
- * Each [ChartSeries] contributes one bar whose length is proportional to
- * the single value stored in [ChartSeries.points[0].first].
  */
 @Composable
 fun HorizontalBarChart(
@@ -37,7 +35,11 @@ fun HorizontalBarChart(
 ) {
     val measurer = rememberTextMeasurer()
 
-    val labelStyle = TextStyle(color = TextSecondary, fontSize = 10.sp)
+    val colorBg      = NavyDeep
+    val colorDivider = DividerColor
+    val colorTextSec = TextSecondary
+
+    val labelStyle = TextStyle(color = colorTextSec, fontSize = 10.sp)
     val valueStyle = TextStyle(
         color    = androidx.compose.ui.graphics.Color.White,
         fontSize = 10.sp
@@ -46,13 +48,11 @@ fun HorizontalBarChart(
     Box(
         modifier = modifier
             .clip(MaterialTheme.shapes.medium)
-            .background(NavyDeep)
+            .background(colorBg)
     ) {
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
-                // Left padding leaves room for bar labels drawn via native Text composables;
-                // right gives space for value labels after the bar end.
                 .padding(start = 8.dp, end = 8.dp, top = 16.dp, bottom = 16.dp)
         ) {
             val w = size.width
@@ -73,18 +73,16 @@ fun HorizontalBarChart(
             // Vertical grid lines
             for (i in 0..4) {
                 val xPos = w * i / 4f
-                drawLine(DividerColor.copy(alpha = 0.2f), Offset(xPos, 0f), Offset(xPos, h), 1f)
+                drawLine(colorDivider.copy(alpha = 0.2f), Offset(xPos, 0f), Offset(xPos, h), 1f)
             }
 
             visibleSeries.forEachIndexed { index, series ->
                 val value   = series.points.first().first
-                // Reserve the rightmost 20% for the value label so bars never overflow
                 val maxBarW = w * 0.78f
                 val barLen  = (value / maxValue * maxBarW).toFloat().coerceAtLeast(4f)
                 val yCenter = barSpacing * index + barSpacing / 2f
                 val yTop    = (yCenter - barHeight / 2f).coerceAtLeast(0f)
 
-                // Bar
                 drawRoundRect(
                     color        = series.color,
                     topLeft      = Offset(0f, yTop),
@@ -92,21 +90,18 @@ fun HorizontalBarChart(
                     cornerRadius = CornerRadius(4f, 4f)
                 )
 
-                // Bar label — drawn inside the plot area above the bar
-                safeDrawText(
-                    measurer      = measurer,
-                    text          = series.label,
-                    style         = labelStyle,
-                    topLeft       = Offset(4f, yTop - 14f),
-                    canvasWidth   = w,
-                    canvasHeight  = h
-                )
-
-                // Value label — drawn just after the bar end
-                val valueText = formatBarValue(value)
                 safeDrawText(
                     measurer     = measurer,
-                    text         = valueText,
+                    text         = series.label,
+                    style        = labelStyle,
+                    topLeft      = Offset(4f, yTop - 14f),
+                    canvasWidth  = w,
+                    canvasHeight = h
+                )
+
+                safeDrawText(
+                    measurer     = measurer,
+                    text         = formatBarValue(value),
                     style        = valueStyle,
                     topLeft      = Offset(barLen + 6f, yTop + barHeight / 2f - 6f),
                     canvasWidth  = w,
@@ -124,11 +119,6 @@ private fun formatBarValue(value: Double): String = when {
     else               -> String.format("%.2f", value)
 }
 
-/**
- * Only calls [drawText] when the canvas has enough room to fit the measured text.
- * Prevents "maxWidth/maxHeight must be >= minWidth/minHeight" on early frames
- * before layout has fully settled.
- */
 private fun DrawScope.safeDrawText(
     measurer: TextMeasurer,
     text: String,
@@ -141,13 +131,6 @@ private fun DrawScope.safeDrawText(
     val measured = measurer.measure(text, style)
     if (measured.size.width <= 0 || measured.size.height <= 0) return
     try {
-        drawText(
-            textMeasurer = measurer,
-            text         = text,
-            style        = style,
-            topLeft      = topLeft
-        )
-    } catch (_: IllegalArgumentException) {
-        // Layout not ready yet — skip this frame silently
-    }
+        drawText(textMeasurer = measurer, text = text, style = style, topLeft = topLeft)
+    } catch (_: IllegalArgumentException) { }
 }

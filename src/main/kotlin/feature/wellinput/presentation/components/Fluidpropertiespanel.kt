@@ -283,10 +283,6 @@ fun FluidPropertiesPanel(
     }
 }
 
-/**
- * Canvas-drawn rheology curve (shear stress vs shear rate).
- * Uses a simple line-drawing approach — no external chart library needed here.
- */
 @Composable
 private fun RheologyCurvePreview(
     fluid: FluidProperties,
@@ -297,27 +293,32 @@ private fun RheologyCurvePreview(
         RheologyModel.POWER_LAW       -> fluid.consistencyIndex > 0
     }
 
+    // ── Capture @Composable colors before Canvas ──
+    val colorBg      = NavyDeep
+    val colorDivider = DividerColor
+    val colorTeal    = TealSafe
+    val colorTextMuted = TextMuted
+
     Box(
-        modifier = modifier
+        modifier         = modifier
             .clip(MaterialTheme.shapes.small)
-            .background(NavyDeep),
+            .background(colorBg),
         contentAlignment = Alignment.Center
     ) {
         if (!hasData) {
             Text(
-                text  = "Enter rheology parameters\nto preview the curve",
-                style = MaterialTheme.typography.bodySmall,
-                color = TextMuted,
+                text      = "Enter rheology parameters\nto preview the curve",
+                style     = MaterialTheme.typography.bodySmall,
+                color     = colorTextMuted,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
         } else {
             androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                val w = size.width
-                val h = size.height
-                val steps = 50
-                val maxRate = 1000f  // 1/s
+                val w       = size.width
+                val h       = size.height
+                val steps   = 50
+                val maxRate = 1000f
 
-                // Compute shear-stress points
                 val points = (0..steps).map { i ->
                     val rate = i * maxRate / steps
                     val stress = when (fluid.rheologyModel) {
@@ -332,15 +333,14 @@ private fun RheologyCurvePreview(
                 val maxStress = points.maxOf { it.second }.coerceAtLeast(1f)
 
                 // Grid lines
-                val gridPaint = androidx.compose.ui.graphics.Paint().apply {
-                    color = DividerColor.copy(alpha = 0.4f)
-                }
                 for (i in 1..4) {
                     val y = h * (1f - i / 4f)
-                    drawLine(DividerColor.copy(alpha = 0.3f),
-                        start = androidx.compose.ui.geometry.Offset(0f, y),
-                        end   = androidx.compose.ui.geometry.Offset(w, y),
-                        strokeWidth = 1f)
+                    drawLine(
+                        color       = colorDivider.copy(alpha = 0.3f),
+                        start       = androidx.compose.ui.geometry.Offset(0f, y),
+                        end         = androidx.compose.ui.geometry.Offset(w, y),
+                        strokeWidth = 1f
+                    )
                 }
 
                 // Curve
@@ -348,7 +348,7 @@ private fun RheologyCurvePreview(
                     val (r1, s1) = points[i]
                     val (r2, s2) = points[i + 1]
                     drawLine(
-                        color       = TealSafe,
+                        color       = colorTeal,
                         start       = androidx.compose.ui.geometry.Offset(r1 / maxRate * w, h - s1 / maxStress * h),
                         end         = androidx.compose.ui.geometry.Offset(r2 / maxRate * w, h - s2 / maxStress * h),
                         strokeWidth = 2f

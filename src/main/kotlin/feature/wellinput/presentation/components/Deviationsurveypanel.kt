@@ -269,38 +269,41 @@ private fun CompactTextField(
     )
 }
 
-/**
- * Canvas that draws the 2D side-view well trajectory.
- * Uses minimum-curvature approximation from MD + Inc + Azi to compute TVD + horizontal departure.
- */
 @Composable
 private fun WellPathCanvas(
     stations: List<SurveyStation>,
     modifier: Modifier = Modifier
 ) {
+    // ── Capture @Composable colors before Canvas ──
+    val colorBg      = NavyDeep
+    val colorDivider = DividerColor
+    val colorTeal    = TealSafe
+    val colorAmber   = AmberGold
+    val colorDanger  = CoralDanger
+    val colorMuted   = TextMuted
+
     Box(
         modifier = modifier
             .clip(MaterialTheme.shapes.small)
-            .background(NavyDeep)
+            .background(colorBg)
     ) {
         if (stations.size < 2) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
                     "Add at least 2 stations\nto preview the well path",
                     style     = MaterialTheme.typography.bodySmall,
-                    color     = TextMuted,
+                    color     = colorMuted,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
             }
             return@Box
         }
 
-        // Compute cumulative TVD + horizontal departure using minimum-curvature
         val points = computeMinimumCurvaturePoints(stations)
         if (points.isEmpty()) return@Box
 
-        val maxTvd    = points.maxOf { it.second }.coerceAtLeast(1.0)
-        val maxHoriz  = points.maxOf { it.first }.coerceAtLeast(1.0)
+        val maxTvd   = points.maxOf { it.second }.coerceAtLeast(1.0)
+        val maxHoriz = points.maxOf { it.first  }.coerceAtLeast(1.0)
 
         androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize().padding(20.dp)) {
             val w = size.width
@@ -309,30 +312,22 @@ private fun WellPathCanvas(
             // Grid
             for (i in 1..4) {
                 val y = h * i / 4f
-                drawLine(DividerColor.copy(alpha = 0.25f), Offset(0f, y), Offset(w, y), 1f)
+                drawLine(colorDivider.copy(alpha = 0.25f), Offset(0f, y), Offset(w, y), 1f)
             }
             for (i in 1..4) {
                 val x = w * i / 4f
-                drawLine(DividerColor.copy(alpha = 0.25f), Offset(x, 0f), Offset(x, h), 1f)
+                drawLine(colorDivider.copy(alpha = 0.25f), Offset(x, 0f), Offset(x, h), 1f)
             }
 
             // Axes
-            drawLine(DividerColor.copy(alpha = 0.5f), Offset(0f, 0f), Offset(0f, h), 1.5f)
-            drawLine(DividerColor.copy(alpha = 0.5f), Offset(0f, 0f), Offset(w, 0f), 1.5f)
+            drawLine(colorDivider.copy(alpha = 0.5f), Offset(0f, 0f), Offset(0f, h), 1.5f)
+            drawLine(colorDivider.copy(alpha = 0.5f), Offset(0f, 0f), Offset(w, 0f), 1.5f)
 
-            // Well path
-            val path = Path()
-            points.forEachIndexed { i, (horiz, tvd) ->
-                val x = (horiz / maxHoriz * w).toFloat()
-                val y = (tvd / maxTvd * h).toFloat()
-                if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
-            }
-
-            // Draw with gradient stroke via segmented lines
+            // Well path with gradient stroke
             points.forEachIndexed { i, _ ->
                 if (i == 0) return@forEachIndexed
                 val fraction = i.toFloat() / points.lastIndex
-                val color    = lerpColor(TealSafe, AmberGold, fraction)
+                val color    = lerpColor(colorTeal, colorAmber, fraction)
                 val (h1, t1) = points[i - 1]
                 val (h2, t2) = points[i]
                 drawLine(
@@ -344,14 +339,19 @@ private fun WellPathCanvas(
             }
 
             // Surface dot
-            drawCircle(AmberGold, radius = 5f, center = Offset(0f, 0f))
+            drawCircle(colorAmber, radius = 5f, center = Offset(0f, 0f))
+
             // TD dot
             val (lastH, lastT) = points.last()
-            drawCircle(CoralDanger, radius = 5f,
-                center = Offset((lastH / maxHoriz * w).toFloat(), (lastT / maxTvd * h).toFloat()))
+            drawCircle(
+                colorDanger,
+                radius = 5f,
+                center = Offset((lastH / maxHoriz * w).toFloat(), (lastT / maxTvd * h).toFloat())
+            )
         }
     }
 }
+
 
 /** Simple colour lerp for gradient path colouring. */
 private fun lerpColor(start: Color, end: Color, t: Float): Color {

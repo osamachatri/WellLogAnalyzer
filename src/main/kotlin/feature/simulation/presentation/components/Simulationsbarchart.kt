@@ -23,13 +23,19 @@ fun SimulationsBarChart(
     projects: List<ProjectSummary>,
     modifier: Modifier = Modifier
 ) {
-    // Count simulations per day for the last 14 days
     val dailyCounts = remember(projects) { buildDailyCounts(projects) }
     val maxCount    = dailyCounts.maxOfOrNull { it.second } ?: 1
 
+    // ── Capture @Composable colors before Canvas ──
+    val colorCardSurface = CardSurface
+    val colorTextSec     = TextSecondary
+    val colorTextMuted   = TextMuted
+    val colorAmber       = AmberGold
+    val colorDivider     = DividerColor
+
     Card(
         modifier  = modifier,
-        colors    = CardDefaults.cardColors(containerColor = CardSurface),
+        colors    = CardDefaults.cardColors(containerColor = colorCardSurface),
         shape     = MaterialTheme.shapes.medium,
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
@@ -37,7 +43,7 @@ fun SimulationsBarChart(
             Text(
                 text  = "Simulations This Month",
                 style = MaterialTheme.typography.titleMedium,
-                color = TextSecondary
+                color = colorTextSec
             )
             Spacer(Modifier.height(12.dp))
 
@@ -49,7 +55,7 @@ fun SimulationsBarChart(
                     Text(
                         "No simulations yet",
                         style = MaterialTheme.typography.bodySmall,
-                        color = TextMuted
+                        color = colorTextMuted
                     )
                 }
             } else {
@@ -58,20 +64,20 @@ fun SimulationsBarChart(
                         .fillMaxWidth()
                         .height(100.dp)
                 ) {
-                    val barCount   = dailyCounts.size
-                    val gap        = 4.dp.toPx()
-                    val totalGap   = gap * (barCount - 1)
-                    val barWidth   = (size.width - totalGap) / barCount
-                    val chartH     = size.height - 20.dp.toPx() // leave bottom room for labels
+                    val barCount  = dailyCounts.size
+                    val gap       = 4.dp.toPx()
+                    val totalGap  = gap * (barCount - 1)
+                    val barWidth  = (size.width - totalGap) / barCount
+                    val chartH    = size.height - 20.dp.toPx()
 
                     dailyCounts.forEachIndexed { i, (_, count) ->
-                        val fraction  = count.toFloat() / maxCount.coerceAtLeast(1)
-                        val barH      = (chartH * fraction).coerceAtLeast(if (count > 0) 4.dp.toPx() else 0f)
-                        val x         = i * (barWidth + gap)
-                        val y         = chartH - barH
+                        val fraction = count.toFloat() / maxCount.coerceAtLeast(1)
+                        val barH     = (chartH * fraction).coerceAtLeast(if (count > 0) 4.dp.toPx() else 0f)
+                        val x        = i * (barWidth + gap)
+                        val y        = chartH - barH
 
                         drawRoundRect(
-                            color        = if (count > 0) AmberGold else DividerColor,
+                            color        = if (count > 0) colorAmber else colorDivider,
                             topLeft      = Offset(x, y),
                             size         = Size(barWidth, barH),
                             cornerRadius = CornerRadius(3.dp.toPx())
@@ -79,7 +85,6 @@ fun SimulationsBarChart(
                     }
                 }
 
-                // Day labels (every other day)
                 Row(
                     modifier              = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -89,7 +94,7 @@ fun SimulationsBarChart(
                             Text(
                                 text  = date.dayOfMonth.toString(),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = TextMuted
+                                color = colorTextMuted
                             )
                         } else {
                             Spacer(Modifier.width(1.dp))
@@ -102,14 +107,12 @@ fun SimulationsBarChart(
 }
 
 private fun buildDailyCounts(projects: List<ProjectSummary>): List<Pair<LocalDate, Int>> {
-    val today   = LocalDate.now()
-    val zone    = ZoneId.systemDefault()
+    val today = LocalDate.now()
+    val zone  = ZoneId.systemDefault()
 
-    // Map each run to its local date
     val runDates = projects
         .filter { it.lastRunTimestamp != null && it.simulationCount > 0 }
         .flatMap { p ->
-            // Use lastRunTimestamp as a proxy — one count per project per day
             listOf(
                 Instant.ofEpochMilli(p.lastRunTimestamp!!)
                     .atZone(zone).toLocalDate()
