@@ -74,10 +74,14 @@ compose.desktop {
         mainClass = "com.oussama_chatri.MainKt"
         nativeDistributions {
             targetFormats(
-                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Deb
+                org.jetbrains.compose.desktop.application.dsl.TargetFormat.AppImage
             )
-            packageName = "WellLogAnalyzer"
+            packageName    = "WellLogAnalyzer"
             packageVersion = "1.0.0"
+
+            linux {
+                iconFile.set(project.file("src/main/resources/icons/app_icon.png"))
+            }
         }
     }
 }
