@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.oussama_chatri.AppState
 import com.oussama_chatri.feature.charts2d.presentation.screen.Charts2DScreen
+import com.oussama_chatri.feature.dashboard.presentation.screen.DashboardScreen
 import com.oussama_chatri.feature.reports.presentation.screen.ReportScreen
 import com.oussama_chatri.feature.simulation.presentation.SimulationScreen
 import com.oussama_chatri.feature.viewer3d.presentation.screen.Viewer3DScreen
@@ -17,7 +18,11 @@ import com.oussama_chatri.feature.wellinput.presentation.screen.WellInputScreen
 @Composable
 fun AppNavigation(appState: AppState) {
     when (appState.currentRoute) {
-        Route.Dashboard -> ScreenPlaceholder("Dashboard")
+
+        Route.Dashboard -> DashboardScreen(
+            onNavigateTo = appState::navigate,
+            modifier     = Modifier.fillMaxSize()
+        )
 
         Route.WellInput -> WellInputScreen(
             onNavigateToSimulation = { profile ->
