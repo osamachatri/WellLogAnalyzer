@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.oussama_chatri.AppState
 import com.oussama_chatri.feature.charts2d.presentation.screen.Charts2DScreen
+import com.oussama_chatri.feature.reports.presentation.screen.ReportScreen
 import com.oussama_chatri.feature.simulation.presentation.SimulationScreen
 import com.oussama_chatri.feature.viewer3d.presentation.screen.Viewer3DScreen
 import com.oussama_chatri.feature.wellinput.presentation.screen.WellInputScreen
@@ -42,7 +43,12 @@ fun AppNavigation(appState: AppState) {
             modifier         = Modifier.fillMaxSize()
         )
 
-        Route.Reports  -> ScreenPlaceholder("Reports")
+        Route.Reports -> ReportScreen(
+            profile  = appState.activeProfile,
+            result   = appState.lastSimulationResult,
+            modifier = Modifier.fillMaxSize()
+        )
+
         Route.Settings -> ScreenPlaceholder("Settings")
     }
 }

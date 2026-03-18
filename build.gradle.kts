@@ -52,10 +52,16 @@ dependencies {
         exclude(group = "org.apache.logging.log4j", module = "log4j-api")
         exclude(group = "org.apache.logging.log4j", module = "log4j-core")
     }
-    implementation("org.docx4j:docx4j-core:11.5.3") {
+
+    implementation("org.docx4j:docx4j-JAXB-ReferenceImpl:11.5.3") {
         exclude(group = "org.apache.logging.log4j", module = "log4j-api")
         exclude(group = "org.apache.logging.log4j", module = "log4j-core")
+        exclude(group = "org.slf4j", module = "slf4j-log4j12")
     }
+
+    // JAXB API + RI that docx4j-JAXB-ReferenceImpl expects
+    implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.2")
+    implementation("com.sun.xml.bind:jaxb-impl:4.0.5")
 
     // Logging — Logback as the single backend + bridge for POI's Log4j calls
     implementation("org.slf4j:slf4j-api:2.0.9")
