@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
@@ -13,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.oussama_chatri.core.theme.*
+import com.oussama_chatri.feature.simulation.domain.model.SimulationResult
 import com.oussama_chatri.feature.simulation.domain.model.SimulationStatus
 import com.oussama_chatri.feature.simulation.presentation.components.ResultsSummaryCard
 import com.oussama_chatri.feature.simulation.presentation.components.SimulationControlPanel
@@ -25,11 +27,11 @@ import org.koin.java.KoinJavaComponent.get
 @Composable
 fun SimulationScreen(
     profileToLoad: WellProfile?,
+    onSimulationComplete: (SimulationResult) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val viewModel: SimulationViewModel = remember { get(SimulationViewModel::class.java) }
 
-    // Load the profile once when the screen first appears (or when it changes)
     LaunchedEffect(profileToLoad) {
         profileToLoad?.let { viewModel.loadProfile(it) }
     }
@@ -41,12 +43,18 @@ fun SimulationScreen(
     val flowRateOverride by viewModel.flowRateOverride.collectAsState()
     val activeProfile    by viewModel.activeProfile.collectAsState()
 
+    // Notify AppState once — not on every recomposition
+    LaunchedEffect(status) {
+        if (status is SimulationStatus.Done) {
+            onSimulationComplete((status as SimulationStatus.Done).result)
+        }
+    }
+
     Row(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surface)
     ) {
-        // Left: Control panel
         SimulationControlPanel(
             profile                  = activeProfile,
             status                   = status,
@@ -61,7 +69,6 @@ fun SimulationScreen(
 
         Box(modifier = Modifier.width(1.dp).fillMaxHeight().background(DividerColor))
 
-        // Center: Progress / Results
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -73,9 +80,7 @@ fun SimulationScreen(
                 is SimulationStatus.Idle -> IdleStateContent(hasProfile = activeProfile != null)
 
                 is SimulationStatus.Running -> Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState()),
+                    modifier            = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
                     SimulationProgressBar(
@@ -85,35 +90,56 @@ fun SimulationScreen(
                 }
 
                 is SimulationStatus.Done -> Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState()),
+                    modifier            = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
                     Row(
                         verticalAlignment     = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier              = Modifier.fillMaxWidth()
                     ) {
-                        Icon(
-                            Icons.Default.CheckCircle,
-                            contentDescription = null,
-                            tint     = TealSafe,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Text(
-                            text  = "Simulation Complete — ${s.result.wellName}",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = TealSafe
-                        )
+                        Row(
+                            verticalAlignment     = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint     = TealSafe,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text  = "Simulation Complete — ${s.result.wellName}",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = TealSafe
+                            )
+                        }
+
+                        // Quick navigation to charts — saves the user an extra click
+                        OutlinedButton(
+                            onClick = { onSimulationComplete(s.result) },
+                            colors  = ButtonDefaults.outlinedButtonColors(contentColor = AmberGold),
+                            border  = androidx.compose.foundation.BorderStroke(
+                                1.dp, AmberGold.copy(alpha = 0.6f)
+                            )
+                        ) {
+                            Icon(
+                                Icons.Default.Analytics,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text("View Charts", style = MaterialTheme.typography.labelMedium)
+                        }
                     }
 
                     ResultsSummaryCard(result = s.result)
                 }
 
                 is SimulationStatus.Failed -> Column(
-                    modifier              = Modifier.fillMaxSize(),
-                    verticalArrangement   = Arrangement.Center,
-                    horizontalAlignment   = Alignment.CenterHorizontally
+                    modifier            = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
                         Icons.Default.Warning,
@@ -137,7 +163,9 @@ fun SimulationScreen(
                     OutlinedButton(
                         onClick = viewModel::reset,
                         colors  = ButtonDefaults.outlinedButtonColors(contentColor = CoralDanger),
-                        border  = androidx.compose.foundation.BorderStroke(1.dp, CoralDanger.copy(alpha = 0.6f))
+                        border  = androidx.compose.foundation.BorderStroke(
+                            1.dp, CoralDanger.copy(alpha = 0.6f)
+                        )
                     ) {
                         Text("Reset")
                     }
@@ -147,7 +175,6 @@ fun SimulationScreen(
 
         Box(modifier = Modifier.width(1.dp).fillMaxHeight().background(DividerColor))
 
-        // Right: Log panel
         SimulationLogPanel(logLines = logLines)
     }
 }
