@@ -1,0 +1,57 @@
+name: Build Native Installers
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: Build Linux packages
+        run: ./gradlew packageAppImage packageDeb
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WellLogAnalyzer-Linux
+          path: |
+            build/compose/binaries/main/app/
+            build/compose/binaries/main/deb/
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: Build Windows installers
+        run: ./gradlew packageExe packageMsi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WellLogAnalyzer-Windows
+          path: |
+            build/compose/binaries/main/exe/
+            build/compose/binaries/main/msi/
+
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: Build macOS DMG
+        run: ./gradlew packageDmg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WellLogAnalyzer-macOS
+          path: build/compose/binaries/main/dmg/
